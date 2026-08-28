@@ -27,7 +27,8 @@ import {
   Play,
   Pause,
   Eye,
-  Wand2
+  Wand2,
+  HelpCircle
 } from 'lucide-react';
 import { playBuySound, playTabNote, playKonamiSuccessSound } from '../utils/audio';
 import { formatNumber } from '../utils/format';
@@ -356,7 +357,7 @@ export const Shop: React.FC<ShopProps> = ({
           <div className="space-y-3.5">
             {/* Secret Card 1 */}
             <div className={`p-4 sm:p-5 rounded-2xl border-2 transition-all flex flex-col ${isM1Locked
-              ? 'bg-slate-950/80 border-slate-800 text-slate-500 opacity-60'
+              ? 'bg-slate-950/80 border-slate-800 text-slate-400 opacity-70'
               : state.points >= m1Cost
                 ? 'bg-gradient-to-br from-purple-950/80 to-pink-950/80 border-pink-400 border-b-4 border-b-pink-600 shadow-[0_4px_0_#831843] text-white'
                 : 'bg-slate-900 border-purple-900/60 border-b-4 border-b-slate-950 text-slate-400'
@@ -364,22 +365,28 @@ export const Shop: React.FC<ShopProps> = ({
               <div className="flex justify-between items-start gap-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <Gift className={`w-5 h-5 ${isM1Locked ? 'text-slate-600' : 'text-pink-400'}`} />
+                    <Gift className={`w-5 h-5 ${isM1Locked ? 'text-slate-500' : 'text-pink-400'}`} />
                     <h3 className="font-bold text-sm sm:text-base text-pink-200">
-                      {isM1Locked ? '??? (Bloqueado)' : 'Mensaje Secreto: 28 de Agosto'}
+                      {isM1Locked ? '(Bloqueado)' : '28 de Agosto'}
                     </h3>
                   </div>
-                  <p className="text-xs sm:text-sm mt-1 text-slate-300">
-                    {isM1Locked
-                      ? 'Desbloquea al menos 15 mejoras en la tienda para revelar este secreto.'
-                      : 'Una dedicatoria especial de cumpleaños oculta en los dados.'}
-                  </p>
+                  {isM1Locked ? (
+                    <p className="text-xs sm:text-sm mt-1 text-slate-300 font-bold">
+                      Desbloquea {Math.max(0, 15 - totalUpgradesBought)} mejoras más
+                    </p>
+                  ) : (
+                    <p className="text-xs sm:text-sm mt-1 text-slate-400 italic">
+                      ¿Qué es? ¿Qué es?
+                    </p>
+                  )}
                 </div>
-                <div className="text-right">
-                  <span className={`font-pixel text-base sm:text-lg font-bold ${state.points >= m1Cost && !isM1Locked ? 'text-yellow-300' : 'text-slate-500'}`}>
-                    {formatNumber(m1Cost)} pts
-                  </span>
-                </div>
+                {!isM1Locked && (
+                  <div className="text-right">
+                    <span className={`font-pixel text-base sm:text-lg font-bold ${state.points >= m1Cost ? 'text-yellow-300' : 'text-slate-500'}`}>
+                      {formatNumber(m1Cost)} pts
+                    </span>
+                  </div>
+                )}
               </div>
 
               {!isM1Locked && (
@@ -405,7 +412,7 @@ export const Shop: React.FC<ShopProps> = ({
 
             {/* Secret Card 2 */}
             <div className={`p-4 sm:p-5 rounded-2xl border-2 transition-all flex flex-col ${isM2Locked
-              ? 'bg-slate-950/80 border-slate-800 text-slate-500 opacity-60'
+              ? 'bg-slate-950/80 border-slate-800 text-slate-400 opacity-70'
               : state.points >= m2Cost
                 ? 'bg-gradient-to-br from-indigo-950/90 to-purple-950/90 border-cyan-400 border-b-4 border-b-cyan-600 shadow-[0_4px_0_#0e7490] text-white'
                 : 'bg-slate-900 border-cyan-900/60 border-b-4 border-b-slate-950 text-slate-400'
@@ -413,22 +420,24 @@ export const Shop: React.FC<ShopProps> = ({
               <div className="flex justify-between items-start gap-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <Sparkles className={`w-5 h-5 ${isM2Locked ? 'text-slate-600' : 'text-cyan-400'}`} />
+                    <HelpCircle className={`w-5 h-5 ${isM2Locked ? 'text-slate-500' : 'text-cyan-400'}`} />
                     <h3 className="font-bold text-sm sm:text-base text-cyan-200">
-                      {isM2Locked ? '??? (Bloqueado)' : 'La Iluminación Cósmica (1B)'}
+                      {isM2Locked ? '(Bloqueado)' : '???'}
                     </h3>
                   </div>
-                  <p className="text-xs sm:text-sm mt-1 text-slate-300">
-                    {isM2Locked
-                      ? 'Desbloquea al menos 50 mejoras en total para revelar este misterio supremo.'
-                      : 'Descubre el mensaje final del universo y el secreto definitivo.'}
-                  </p>
+                  {isM2Locked && (
+                    <p className="text-xs sm:text-sm mt-1 text-slate-300 font-bold">
+                      Desbloquea {Math.max(0, 50 - totalUpgradesBought)} mejoras más
+                    </p>
+                  )}
                 </div>
-                <div className="text-right">
-                  <span className={`font-pixel text-base sm:text-lg font-bold ${state.points >= m2Cost && !isM2Locked ? 'text-yellow-300' : 'text-slate-500'}`}>
-                    {formatNumber(m2Cost)} pts
-                  </span>
-                </div>
+                {!isM2Locked && (
+                  <div className="text-right">
+                    <span className={`font-pixel text-base sm:text-lg font-bold ${state.points >= m2Cost ? 'text-yellow-300' : 'text-slate-500'}`}>
+                      {formatNumber(m2Cost)} pts
+                    </span>
+                  </div>
+                )}
               </div>
 
               {!isM2Locked && (

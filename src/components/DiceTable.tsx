@@ -4,7 +4,7 @@ import confetti from 'canvas-confetti';
 import { formatNumber } from '../utils/format';
 import { playComboSound } from '../utils/audio';
 import { ComboResult, getDiceComboColorMap } from '../game/engine';
-import { Flame, Sparkles } from 'lucide-react';
+import { Flame, Sparkles, Dices } from 'lucide-react';
 import { VectorTrue3DDie, VectorSpinningDiePreview } from './Polyhedron3D';
 
 export { VectorSpinningDiePreview as SpinningDiePreview } from './Polyhedron3D';
@@ -73,6 +73,11 @@ export const DiceTable: React.FC<DiceTableProps> = ({
   const lastConfettiTimeRef = useRef(0);
   const lastParticleTimeRef = useRef(0);
 
+  // Rolls per second tracking & decay
+  const [rps, setRps] = useState<number>(0);
+  const rollTimesRef = useRef<number[]>([]);
+  const lastRollTimeRef = useRef<number>(0);
+
   const normalDiceCount = faces.length;
   // Dynamic responsive die size for up to 10 regular dice
   const dieSize = normalDiceCount >= 9 ? 42 : normalDiceCount >= 7 ? 48 : normalDiceCount >= 5 ? 54 : normalDiceCount >= 3 ? 64 : 76;
@@ -83,8 +88,56 @@ export const DiceTable: React.FC<DiceTableProps> = ({
     return getDiceComboColorMap(faces, sides);
   }, [faces, sides]);
 
+  // Format rolls per second concisely
+  const rpsValue = useMemo(() => {
+    if (rps <= 0.1) return null;
+    if (rps >= 100) return formatNumber(Math.round(rps));
+    if (rps >= 10) return rps.toFixed(1);
+    if (rps >= 1) return rps.toFixed(1);
+    return rps.toFixed(2);
+  }, [rps]);
+
+  // Periodic decay timer: if no roll occurred for > 4s, clear speed capsule
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      if (lastRollTimeRef.current > 0 && now - lastRollTimeRef.current > 4000) {
+        setRps(0);
+        rollTimesRef.current = [];
+      }
+    }, 400);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     if (faces !== prevFaces.current && faces.length > 0) {
+      const now = Date.now();
+      const prevTime = lastRollTimeRef.current;
+      lastRollTimeRef.current = now;
+
+      // Track speed only if gap between rolls <= 5000ms (5 seconds)
+      if (prevTime > 0 && now - prevTime <= 5000) {
+        rollTimesRef.current.push(now);
+      } else {
+        rollTimesRef.current = [now];
+      }
+
+      // Filter to sliding 3-second window
+      rollTimesRef.current = rollTimesRef.current.filter(t => now - t <= 3000);
+
+      if (rollTimesRef.current.length >= 2) {
+        const times = rollTimesRef.current;
+        const spanSec = (times[times.length - 1] - times[0]) / 1000;
+        if (spanSec > 0) {
+          setRps((times.length - 1) / spanSec);
+        }
+      } else if (prevTime > 0 && now - prevTime <= 5000) {
+        const intervalSec = (now - prevTime) / 1000;
+        if (intervalSec > 0) {
+          setRps(1 / intervalSec);
+        }
+      }
+
       const newRollId = rollId + 1;
       setRollId(newRollId);
       prevFaces.current = faces;
@@ -191,7 +244,23 @@ export const DiceTable: React.FC<DiceTableProps> = ({
       {/* Table felt textures / casino watermark */}
       <div className="absolute inset-0 pointer-events-none opacity-25 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-400/20 via-transparent to-black/40" />
 
-      {/* Streak Badge on Table */}
+      {/* Rolls Per Second Speed Badge: X 🎲/s (Top Left of Table Felt) */}
+      {rpsValue && (
+        <div 
+          className="absolute top-2.5 left-2.5 sm:top-4 sm:left-4 bg-cyan-950/85 border border-cyan-500/70 text-cyan-300 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full flex items-center gap-1 shadow-lg backdrop-blur-sm z-20 select-none animate-fadeIn"
+          title={`Velocidad: ${rpsValue} dados/seg`}
+        >
+          <span className="font-pixel text-xs sm:text-base font-bold tracking-wide">
+            {rpsValue}
+          </span>
+          <Dices className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-300 shrink-0" />
+          <span className="font-pixel text-xs sm:text-base font-bold tracking-wide">
+            /s
+          </span>
+        </div>
+      )}
+
+      {/* Streak Badge on Table (Top Right of Table Felt) */}
       {comboStreak > 1 && (
         <div 
           className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 bg-orange-950/80 border border-orange-500 text-orange-400 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full flex items-center gap-1.5 shadow-lg backdrop-blur-sm z-20"

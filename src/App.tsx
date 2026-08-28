@@ -97,7 +97,10 @@ const AutoRollIndicator = ({
       </span>
       
       {!isPaused && (
-        <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none opacity-40">
+        <svg 
+          viewBox="0 0 44 44" 
+          className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none opacity-40"
+        >
           <motion.circle
             cx="22" cy="22" r={radius}
             fill="transparent"
@@ -265,7 +268,7 @@ export default function App() {
   };
 
   const handleRoll = (bypassCooldown = false) => {
-    if (isOptionsOpen) return;
+    if (isOptionsOpen || tutorialStep === 25) return;
     if (cooldownActive && !bypassCooldown) return;
     
     const cdMs = manualCooldown * 1000;
@@ -277,14 +280,20 @@ export default function App() {
     playRollSound(materialTier);
     rollDice();
     
-    // Tutorial progression hooks
+    // Tutorial progression hooks: pop-up triggers on 3rd roll if < 50 points
     if (tutorialStep === 1) {
       tutorialRollsCountRef.current = 1;
-      setTutorialStep(2);
+      // If user already has >= 50 points (e.g. replaying tutorial with existing points/upgrades),
+      // no need to wait: jump straight to Step 3 (Open shop)!
+      if (state.points >= 50) {
+        setTutorialStep(3);
+      } else {
+        setTutorialStep(2);
+      }
     } else if (tutorialStep === 2) {
       tutorialRollsCountRef.current += 1;
       if (tutorialRollsCountRef.current === 3 && state.points < 50) {
-        setTutorialStep(25); // Show 3rd roll OK Prompt
+        setTutorialStep(25);
       }
     } else if (tutorialStep === 6) {
       handleFinishTutorial();
@@ -316,7 +325,7 @@ export default function App() {
   };
 
   const startHold = (e?: React.PointerEvent) => {
-    if (isOptionsOpen) return;
+    if (isOptionsOpen || tutorialStep === 25) return;
     if (!getHoldToRollEnabled(state.upgrades.hold_to_roll)) return;
     if (isHoldingRef.current) return;
 
@@ -380,7 +389,17 @@ export default function App() {
     playClickSound();
     setIsShopOpen(true);
     if (tutorialStep === 3) {
+      setTutorialStep(40); // Show shop introduction pop-up
+    }
+  };
+
+  const handleDismissShopIntro = () => {
+    // If it's a first time playthrough (or manual_cooldown not purchased), highlight Dedos Rapidos
+    // Otherwise, if they already have manual_cooldown, guide them straight to closing the shop
+    if ((state.upgrades.manual_cooldown || 0) < 1) {
       setTutorialStep(4);
+    } else {
+      setTutorialStep(5);
     }
   };
 
@@ -625,14 +644,6 @@ export default function App() {
           </button>
         </footer>
 
-        {/* Interactive Guided Tutorial Overlay */}
-        <TutorialOverlay 
-          step={tutorialStep} 
-          onSkip={skipTutorial} 
-          onDismissOkPrompt={() => setTutorialStep(2)}
-          onFinishTutorial={handleFinishTutorial}
-        />
-
         {/* Shop Modal Drawer with Locked Tabs during Tutorial */}
         <AnimatePresence>
           {isShopOpen && (
@@ -677,6 +688,15 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Interactive Guided Tutorial Overlay (Rendered above Shop Drawer) */}
+        <TutorialOverlay 
+          step={tutorialStep} 
+          onSkip={skipTutorial} 
+          onDismissOkPrompt={() => setTutorialStep(2)}
+          onDismissShopIntro={handleDismissShopIntro}
+          onFinishTutorial={handleFinishTutorial}
+        />
 
         {/* Secretos Modals */}
         <Milestones 

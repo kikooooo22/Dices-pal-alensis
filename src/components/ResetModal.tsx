@@ -110,12 +110,8 @@ export const ResetModal: React.FC<ResetModalProps> = ({ onConfirm, onClose }) =>
           />
           
           <span className="relative z-10 flex items-center justify-center gap-2 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-            <Trash2 className={`w-5 h-5 ${progress > 50 ? 'animate-spin' : ''}`} />
-            {progress >= 100 
-              ? '¡REINICIANDO!' 
-              : progress > 0 
-                ? `SOSTÉN... ${Math.round(progress)}%` 
-                : 'MANTÉN PARA BORRAR'}
+            <Trash2 className="w-5 h-5" />
+            MANTÉN PARA BORRAR
           </span>
         </button>
 
