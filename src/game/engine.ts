@@ -6,7 +6,7 @@ export type UpgradeId =
   | 'auto_roller'
   | 'cushioned_surface'
   | 'flat_bonus'
-  | 'worst_case_elim'
+  | 'less_is_more'
   | 'table_magnetism'
   | 'ghost_dice'
   | 'combo_mult'
@@ -103,8 +103,8 @@ export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
     growth: 1.65,
     maxLevel: 20
   },
-  worst_case_elim: {
-    id: 'worst_case_elim',
+  less_is_more: {
+    id: 'less_is_more',
     name: 'Menos es Más',
     desc: 'Probabilidad de convertir los resultados de 1 en el valor más alto del dado.',
     category: 'probability',
@@ -184,9 +184,12 @@ export const getFlatBonus = (level: number): number => {
   return level;
 };
 
-export const getWorstCaseProb = (level: number): number => {
+export const getLessIsMoreProb = (level: number): number => {
   return level * 0.05;
 };
+
+// Backward-compatible alias
+export const getWorstCaseProb = getLessIsMoreProb;
 
 export const getMagnetismProb = (level: number): number => {
   return level * 0.08;

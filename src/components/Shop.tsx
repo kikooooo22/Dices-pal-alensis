@@ -195,7 +195,7 @@ export const Shop: React.FC<ShopProps> = ({
         return level > 0 ? 'Tiro continuo activado (mantén presionado)' : 'Habilita disparar manteniendo presionado';
       case 'flat_bonus':
         return `Puntos base por dado: +${getFlatBonus(level)} pts${!isMax ? ` → +${getFlatBonus(level + 1)} pts` : ''}`;
-      case 'worst_case_elim':
+      case 'less_is_more':
         return `Probabilidad de convertir 1s en máximo: ${level * 5}%${!isMax ? ` → ${(level + 1) * 5}%` : ''}`;
       case 'table_magnetism':
         return `Probabilidad de dados repetidos / pares: ${level * 8}%${!isMax ? ` → ${(level + 1) * 8}%` : ''}`;

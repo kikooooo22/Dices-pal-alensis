@@ -8,7 +8,7 @@ import {
   getMaterialMult,
   getAutoRollsPerSec,
   getFlatBonus,
-  getWorstCaseProb,
+  getLessIsMoreProb,
   getMagnetismProb,
   getGhostDiceProbability,
   getComboMult,
@@ -54,7 +54,7 @@ export const INITIAL_STATE: GameState = {
     auto_roller: 0,
     cushioned_surface: 0,
     flat_bonus: 0,
-    worst_case_elim: 0,
+    less_is_more: 0,
     table_magnetism: 0,
     ghost_dice: 0,
     combo_mult: 0,
@@ -74,10 +74,14 @@ export const useGameState = (isGlobalPaused: boolean = false) => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        const upgs = parsed.upgrades || {};
+        if (upgs.worst_case_elim !== undefined && upgs.less_is_more === undefined) {
+          upgs.less_is_more = upgs.worst_case_elim;
+        }
         return {
           ...INITIAL_STATE,
           ...parsed,
-          upgrades: { ...INITIAL_STATE.upgrades, ...(parsed.upgrades || {}) },
+          upgrades: { ...INITIAL_STATE.upgrades, ...upgs },
           globalMult: parsed.milestone1Unlocked ? 2 : 1,
           cheatsUnlocked: Boolean(parsed.cheatsUnlocked),
         };
@@ -203,7 +207,7 @@ export const useGameState = (isGlobalPaused: boolean = false) => {
     const flat = getFlatBonus(current.upgrades.flat_bonus);
     const matMult = getMaterialMult(current.upgrades.material_tier);
     const comboM = getComboMult(current.upgrades.combo_mult);
-    const worstCaseProb = getWorstCaseProb(current.upgrades.worst_case_elim);
+    const lessIsMoreProb = getLessIsMoreProb(current.upgrades.less_is_more || 0);
     const magnetismProb = getMagnetismProb(current.upgrades.table_magnetism);
     const ghostProb = getGhostDiceProbability(current.upgrades.ghost_dice);
 
@@ -226,8 +230,8 @@ export const useGameState = (isGlobalPaused: boolean = false) => {
         face = Math.floor(Math.random() * sides) + 1;
       }
 
-      // Worst case elimination: converts 1s into max sides
-      if (face === 1 && Math.random() < worstCaseProb) {
+      // Less is More: converts 1s into max sides
+      if (face === 1 && Math.random() < lessIsMoreProb) {
         face = sides;
       }
 
@@ -239,7 +243,7 @@ export const useGameState = (isGlobalPaused: boolean = false) => {
     const ghosts: number[] = [];
     if (ghostProb > 0 && Math.random() < ghostProb) {
       let ghostFace = Math.floor(Math.random() * sides) + 1;
-      if (ghostFace === 1 && Math.random() < worstCaseProb) {
+      if (ghostFace === 1 && Math.random() < lessIsMoreProb) {
         ghostFace = sides;
       }
       ghosts.push(ghostFace);
