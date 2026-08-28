@@ -1,0 +1,6 @@
+{
+  "name": "Broma Cumpleaños (Juego de Dados)",
+  "description": "Un clicker incremental sobre dados disfrazado como una broma de cumpleaños. Optimizado para móviles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
