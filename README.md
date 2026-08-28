@@ -1,8 +1,10 @@
 <div align="center">
 
-# 🎲 Dices — Incremental Dice Game
+# 🎲 Dices — hola w
 
 **Un adictivo juego incremental e idle de dados poliédricos 3D, combos de póker y física de casino.**
+
+**Hecho con mucha fé y sueño (ptm, que horror)**
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Vite](https://img.shields.io/badge/Vite-6.x-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
@@ -10,7 +12,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
-[**🎮 Jugar en Vivo**](https://dices-opal.vercel.app/) · [Reportar Bug](https://github.com/kikooooo22/Dices-pal-alensis/issues) · [Solicitar Característica](https://github.com/kikooooo22/Dices-pal-alensis/issues)
+[**🎮 Jugar en Vivo**](https://dices-opal.vercel.app/) · [Reportar Bug](https://github.com/kikooooo22/Dices/issues) · [Solicitar Característica](https://github.com/kikooooo22/Dices/issues)
 
 </div>
 
@@ -67,8 +69,8 @@
 
 1. **Clonar el repositorio:**
    ```bash
-   git clone https://github.com/kikooooo22/Dices-pal-alensis.git
-   cd Dices-pal-alensis
+   git clone https://github.com/kikooooo22/Dices.git
+   cd Dices
    ```
 
 2. **Instalar dependencias:**
