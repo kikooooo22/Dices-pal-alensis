@@ -1,11 +1,11 @@
-export type UpgradeId = 
-  | 'extra_dice' 
-  | 'dice_sides' 
-  | 'material_tier' 
-  | 'manual_cooldown' 
-  | 'auto_roller' 
+export type UpgradeId =
+  | 'extra_dice'
+  | 'dice_sides'
+  | 'material_tier'
+  | 'manual_cooldown'
+  | 'auto_roller'
   | 'cushioned_surface'
-  | 'flat_bonus' 
+  | 'flat_bonus'
   | 'worst_case_elim'
   | 'table_magnetism'
   | 'ghost_dice'
@@ -27,119 +27,119 @@ export interface UpgradeDef {
 
 export const UPGRADES: Record<UpgradeId, UpgradeDef> = {
   // 1. Capacidad y Tipo de Dados
-  extra_dice: { 
-    id: 'extra_dice', 
-    name: 'Más Dados', 
-    desc: 'Lanza hasta 10 dados por tirada. Más dados permiten sumar enormes cantidades de puntos y armar combos colosales (Tríos, Dobles, Full, Septetos, Decetos).', 
+  extra_dice: {
+    id: 'extra_dice',
+    name: 'Más Dados',
+    desc: 'Tira un dado adicional por tirada.',
     category: 'dice',
-    baseCost: 500, 
-    growth: 3.8, 
+    baseCost: 500,
+    growth: 3.8,
     maxLevel: 9 // 1 + 9 = 10 dados en total
   },
-  dice_sides: { 
-    id: 'dice_sides', 
-    name: 'Evolución Poliédrica', 
-    desc: 'Aumenta el número de caras de los dados (D6 → D8 → D10 → D12 → D20) para obtener números más altos.', 
+  dice_sides: {
+    id: 'dice_sides',
+    name: 'Evolución Poliédrica',
+    desc: 'Aumenta las caras de los dados para obtener números más altos en cada tirada.',
     category: 'dice',
-    baseCost: 1200, 
-    growth: 4.5, 
-    maxLevel: 4 
+    baseCost: 1200,
+    growth: 4.5,
+    maxLevel: 4
   },
-  material_tier: { 
-    id: 'material_tier', 
-    name: 'Calidad de Material', 
-    desc: 'Multiplica los puntos finales de cada tirada según el material (Madera, Plástico, Metal, Cristal, Neón, Cósmico).', 
+  material_tier: {
+    id: 'material_tier',
+    name: 'Calidad de Material',
+    desc: 'Multiplica los puntos de cada tirada según la calidad del material de los dados.',
     category: 'dice',
-    baseCost: 2500, 
-    growth: 5.8, 
-    maxLevel: 5 
+    baseCost: 2500,
+    growth: 5.8,
+    maxLevel: 5
   },
 
   // 2. Automatización y Ritmo
-  manual_cooldown: { 
-    id: 'manual_cooldown', 
-    name: 'Dedos Rápidos', 
-    desc: 'Reduce drásticamente el tiempo de recarga manual hasta velocidades absurdas e hiper-rápidas (+50 tiros/segundo).', 
+  manual_cooldown: {
+    id: 'manual_cooldown',
+    name: 'Dedos Rápidos',
+    desc: 'Reduce drásticamente el tiempo de tirada manual de los dados.',
     category: 'automation',
-    baseCost: 50, 
-    growth: 1.55, 
+    baseCost: 50,
+    growth: 1.55,
     maxLevel: 40 // Velocidad extrema absurda para el endgame
   },
-  auto_roller: { 
-    id: 'auto_roller', 
-    name: 'Mano Mecánica (Auto-Roller)', 
-    desc: 'Tira los dados automáticamente de forma pasiva y constante sin tener que presionar la pantalla.', 
+  auto_roller: {
+    id: 'auto_roller',
+    name: 'Mano Mecánica (Auto-Roller)',
+    desc: 'Tira los dados automáticamente de forma pasiva y constante.',
     category: 'automation',
-    baseCost: 350, 
-    growth: 1.75, 
-    maxLevel: 20 
+    baseCost: 350,
+    growth: 1.75,
+    maxLevel: 20
   },
-  cushioned_surface: { 
-    id: 'cushioned_surface', 
-    name: 'Superficie Acolchada', 
-    desc: 'Acelera la animación de volteo de los dados para que los resultados se registren más rápido.', 
+  cushioned_surface: {
+    id: 'cushioned_surface',
+    name: 'Superficie Acolchada',
+    desc: 'Acelera la animación de los dados para que las tiradas se resuelvan más rápido.',
     category: 'automation',
-    baseCost: 200, 
-    growth: 1.7, 
-    maxLevel: 10 
+    baseCost: 200,
+    growth: 1.7,
+    maxLevel: 10
   },
-  hold_to_roll: { 
-    id: 'hold_to_roll', 
-    name: 'Lanzamiento Continuo', 
-    desc: 'Permite mantener presionada la mesa o el botón para disparar ráfagas continuas de tiradas.', 
+  hold_to_roll: {
+    id: 'hold_to_roll',
+    name: 'Lanzamiento Continuo',
+    desc: 'Permite mantener presionada la mesa o el botón para tirar dados continuamente.',
     category: 'automation',
-    baseCost: 1000, 
-    growth: 1.0, 
-    maxLevel: 1 
+    baseCost: 1000,
+    growth: 1.0,
+    maxLevel: 1
   },
 
   // 3. Modificadores de Probabilidad (Loaded Dice)
-  flat_bonus: { 
-    id: 'flat_bonus', 
-    name: 'Caras Trucadas', 
-    desc: 'Suma puntos base extra (+1 por nivel) al valor de cada dado antes de multiplicar.', 
+  flat_bonus: {
+    id: 'flat_bonus',
+    name: 'Caras Trucadas',
+    desc: 'Añade puntos base adicionales a cada dado antes de multiplicar.',
     category: 'probability',
-    baseCost: 150, 
-    growth: 1.65, 
-    maxLevel: 20 
+    baseCost: 150,
+    growth: 1.65,
+    maxLevel: 20
   },
-  worst_case_elim: { 
-    id: 'worst_case_elim', 
-    name: 'Eliminación del Peor Caso', 
-    desc: 'Convierte los resultados de 1 en el valor máximo del dado (5% de probabilidad por nivel).', 
+  worst_case_elim: {
+    id: 'worst_case_elim',
+    name: 'Menos es Más',
+    desc: 'Probabilidad de convertir los resultados de 1 en el valor más alto del dado.',
     category: 'probability',
-    baseCost: 1500, 
-    growth: 3.2, 
-    maxLevel: 5 
+    baseCost: 1500,
+    growth: 3.2,
+    maxLevel: 5
   },
-  table_magnetism: { 
-    id: 'table_magnetism', 
-    name: 'Magnetismo de Mesa', 
-    desc: 'Atrae los dados para que repitan números iguales o números pares, facilitando armar combos.', 
+  table_magnetism: {
+    id: 'table_magnetism',
+    name: 'Magnetismo de Mesa',
+    desc: 'Aumenta la probabilidad de que caigan números repetidos para armar combos.',
     category: 'probability',
-    baseCost: 800, 
-    growth: 3.0, 
-    maxLevel: 5 
+    baseCost: 800,
+    growth: 3.0,
+    maxLevel: 5
   },
-  ghost_dice: { 
-    id: 'ghost_dice', 
-    name: 'Dado Fantasma', 
-    desc: 'Probabilidad de invocar un dado etéreo luminoso extra en la tirada que suma puntos adicionales.', 
+  ghost_dice: {
+    id: 'ghost_dice',
+    name: 'Dado Fantasma',
+    desc: 'Probabilidad de invocar un dado fantasma que suma puntos extra en cada tiro.',
     category: 'probability',
-    baseCost: 4000, 
-    growth: 3.8, 
-    maxLevel: 5 
+    baseCost: 4000,
+    growth: 3.8,
+    maxLevel: 5
   },
 
   // 4. Combos y Sinergias
-  combo_mult: { 
-    id: 'combo_mult', 
-    name: 'Multiplicador de Combos', 
-    desc: 'Multiplica la ganancia de todas las combinaciones de póker (Pares, Tríos, Poker, Escaleras, etc.).', 
+  combo_mult: {
+    id: 'combo_mult',
+    name: 'Multiplicador de Combos',
+    desc: 'Aumenta el multiplicador de puntos de todas las combinaciones y combos de dados.',
     category: 'combos',
-    baseCost: 600, 
-    growth: 1.6, 
-    maxLevel: 20 
+    baseCost: 600,
+    growth: 1.6,
+    maxLevel: 20
   },
 };
 
@@ -316,7 +316,7 @@ export const TIER_COLOR_FAMILIES = {
 
 // Returns a mapping of dieIndex -> customBorderColor for each distinct matching group/pair
 export const getDiceComboColorMap = (
-  faces: number[], 
+  faces: number[],
   sides: number
 ): Record<number, string> => {
   if (faces.length === 0) return {};
@@ -383,10 +383,10 @@ export const getDiceComboColorMap = (
         }
       }
       if (longestStreak >= 4) {
-        const straightColor = longestStreak >= 6 
-          ? TIER_COLOR_FAMILIES.straight[2] 
-          : longestStreak === 5 
-            ? TIER_COLOR_FAMILIES.straight[1] 
+        const straightColor = longestStreak >= 6
+          ? TIER_COLOR_FAMILIES.straight[2]
+          : longestStreak === 5
+            ? TIER_COLOR_FAMILIES.straight[1]
             : TIER_COLOR_FAMILIES.straight[0];
 
         const straightFaces = distinctFaces.slice(streakEndIdx - longestStreak + 1, streakEndIdx + 1);

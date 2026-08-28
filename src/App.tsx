@@ -41,7 +41,8 @@ import {
   Eye,
   RotateCw,
   Zap,
-  HelpCircle
+  HelpCircle,
+  Lock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -117,7 +118,7 @@ export default function App() {
   const [isPartyMode, setIsPartyMode] = useState(false);
   const [volume, setVolume] = useState(() => getMasterVolume());
   
-  // Interactive Onboarding Tutorial Step (1 to 6, 0 = Inactive)
+  // Interactive Onboarding Tutorial Step (1, 2, 25, 3, 4, 5, 6, 0 = Inactive)
   const [tutorialStep, setTutorialStep] = useState<number>(() => {
     try {
       const isDone = localStorage.getItem('pal_tutorial_completed');
@@ -127,8 +128,11 @@ export default function App() {
     }
   });
 
+  const tutorialRollsCountRef = useRef(0);
+
   const startTutorial = () => {
     playClickSound();
+    tutorialRollsCountRef.current = 0;
     setIsOptionsOpen(false);
     setIsShopOpen(false);
     setTutorialStep(1);
@@ -140,6 +144,20 @@ export default function App() {
     try {
       localStorage.setItem('pal_tutorial_completed', 'true');
     } catch (e) {}
+  };
+
+  const handleFinishTutorial = () => {
+    setTutorialStep(0);
+    try {
+      localStorage.setItem('pal_tutorial_completed', 'true');
+    } catch (e) {}
+    confetti({
+      particleCount: 50,
+      spread: 90,
+      origin: { y: 0.5 },
+      colors: ['#34d399', '#facc15', '#38bdf8', '#a855f7'],
+      zIndex: 9999
+    });
   };
   
   // Graphics & Performance settings with localStorage persistence
@@ -210,9 +228,9 @@ export default function App() {
   const manualCooldown = getManualCooldown(state.upgrades.manual_cooldown);
   const animSpeedMult = getAnimationSpeedMult(state.upgrades.cushioned_surface);
 
-  // Advance tutorial step 2 -> 3 as soon as user earns 50 points
+  // Advance tutorial step 2/25 -> 3 as soon as user earns 50 points
   useEffect(() => {
-    if (tutorialStep === 2 && state.points >= 50) {
+    if ((tutorialStep === 2 || tutorialStep === 25) && state.points >= 50) {
       setTutorialStep(3);
     }
   }, [state.points, tutorialStep]);
@@ -261,19 +279,15 @@ export default function App() {
     
     // Tutorial progression hooks
     if (tutorialStep === 1) {
+      tutorialRollsCountRef.current = 1;
       setTutorialStep(2);
+    } else if (tutorialStep === 2) {
+      tutorialRollsCountRef.current += 1;
+      if (tutorialRollsCountRef.current === 3 && state.points < 50) {
+        setTutorialStep(25); // Show 3rd roll OK Prompt
+      }
     } else if (tutorialStep === 6) {
-      setTutorialStep(0);
-      try {
-        localStorage.setItem('pal_tutorial_completed', 'true');
-      } catch (e) {}
-      confetti({
-        particleCount: 45,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#34d399', '#facc15', '#38bdf8', '#a855f7'],
-        zIndex: 9999
-      });
+      handleFinishTutorial();
     }
 
     setCooldownActive(true);
@@ -362,6 +376,7 @@ export default function App() {
   };
 
   const handleOpenShop = () => {
+    if (tutorialStep > 0 && tutorialStep !== 3) return; // Shop locked before step 3
     playClickSound();
     setIsShopOpen(true);
     if (tutorialStep === 3) {
@@ -400,8 +415,8 @@ export default function App() {
         isPartyMode ? 'party-dancer border-yellow-400' : ''
       }`}>
         
-        {/* Header HUD */}
-        <header className={`bg-slate-950 text-white p-2.5 sm:p-4 z-20 shadow-md border-b border-slate-800 shrink-0 ${
+        {/* Header HUD with z-50 so Shop Button is always on top */}
+        <header className={`bg-slate-950 text-white p-2.5 sm:p-4 z-50 shadow-md border-b border-slate-800 shrink-0 ${
           isPartyMode ? 'party-dancer' : ''
         }`}>
           <div className="flex justify-between items-center gap-2">
@@ -443,18 +458,26 @@ export default function App() {
                 <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
               </button>
 
-              {/* Shop Button with Spotlight when Tutorial Step 3 */}
+              {/* Shop Button with Clean Visuals & Spotlight when Tutorial Step 3 */}
               <button 
                 onClick={handleOpenShop}
-                className={`relative p-2 sm:p-3 rounded-xl sm:rounded-2xl border-2 transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
+                disabled={tutorialStep > 0 && tutorialStep !== 3}
+                className={`relative p-2 sm:p-3 rounded-xl sm:rounded-2xl border-2 transition-all flex items-center gap-1.5 font-bold ${
                   tutorialStep === 3
-                    ? 'bg-blue-600 text-white border-cyan-300 border-b-4 border-b-blue-800 ring-4 ring-cyan-400 ring-offset-2 ring-offset-slate-950 animate-bounce z-50 shadow-[0_0_25px_rgba(6,182,212,0.8)]'
-                    : 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400 border-b-4 border-b-blue-800 shadow-[0_2px_0_#1e40af] active:translate-y-0.5 active:border-b-2 active:shadow-none'
+                    ? 'bg-blue-600 text-white border-cyan-300 border-b-4 border-b-blue-800 ring-4 ring-cyan-400 ring-offset-2 ring-offset-slate-950 animate-bounce shadow-[0_0_30px_rgba(6,182,212,0.9)] cursor-pointer'
+                    : tutorialStep > 0
+                      ? 'bg-blue-600/75 text-white/80 border-blue-500/50 border-b-4 border-b-blue-900 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400 border-b-4 border-b-blue-800 shadow-[0_2px_0_#1e40af] active:translate-y-0.5 active:border-b-2 active:shadow-none cursor-pointer'
                 }`}
+                title={tutorialStep > 0 && tutorialStep !== 3 ? 'Tienda bloqueada durante el tutorial' : 'Tienda de Mejoras'}
               >
-                <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                {tutorialStep > 0 && tutorialStep !== 3 ? (
+                  <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-200" />
+                ) : (
+                  <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                )}
                 <span className="hidden sm:inline text-sm">Tienda</span>
-                {affordableCount > 0 && (
+                {affordableCount > 0 && tutorialStep === 0 && (
                   <span className="absolute -top-2 -right-1.5 bg-rose-500 text-white text-[10px] sm:text-xs font-black w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full border-2 border-slate-950 shadow-xl animate-bounce">
                     {affordableCount}
                   </span>
@@ -497,9 +520,11 @@ export default function App() {
           </div>
         </header>
 
-        {/* Dice Virtual Casino Table (flex-1 min-h-0 with touch-action none for fluid continuous hold) */}
+        {/* Dice Virtual Casino Table with full highlight on Tutorial Step 1 */}
         <main 
-          className="flex-1 min-h-0 flex flex-col p-2 sm:p-4 bg-slate-950 relative overflow-hidden"
+          className={`flex-1 min-h-0 flex flex-col p-2 sm:p-4 bg-slate-950 relative overflow-hidden transition-all ${
+            tutorialStep === 1 ? 'ring-4 ring-emerald-400 ring-offset-2 ring-offset-slate-950 rounded-2xl sm:rounded-3xl shadow-[0_0_35px_rgba(52,211,153,0.4)] z-20' : ''
+          } ${tutorialStep === 3 ? 'pointer-events-none opacity-70' : ''}`}
           style={{ touchAction: 'none' }}
           onPointerDown={startHold}
           onContextMenu={(e) => e.preventDefault()}
@@ -522,10 +547,10 @@ export default function App() {
           />
         </main>
 
-        {/* Physical Roll Action Bar (Compact for Mobile, Spotlighted on Step 1, 2 & 6) */}
+        {/* Physical Roll Action Bar */}
         <footer className={`p-2.5 sm:p-4 bg-slate-950 border-t border-slate-800 z-10 pb-3 sm:pb-4 shadow-[0_-8px_25px_rgba(0,0,0,0.6)] flex items-center gap-2 sm:gap-3 shrink-0 ${
           isPartyMode ? 'party-dancer' : ''
-        }`}>
+        } ${tutorialStep === 3 ? 'pointer-events-none opacity-70' : ''}`}>
           {/* Mini-table Preview Box with full D-sides and Dado label */}
           <div className="flex items-center bg-gradient-to-b from-emerald-800 via-emerald-700 to-emerald-900 rounded-xl sm:rounded-2xl px-2.5 sm:px-3.5 py-1 border-2 sm:border-4 border-amber-950 shadow-[inset_0_3px_8px_rgba(0,0,0,0.6),0_3px_0_#451a03] shrink-0 h-[58px] sm:h-[72px] gap-1.5 sm:gap-2.5">
             {graphics.showSpinningPreview ? (
@@ -565,8 +590,8 @@ export default function App() {
             onPointerDown={startHold}
             style={{ touchAction: 'none' }}
             className={`relative flex-1 h-[58px] sm:h-[72px] rounded-xl sm:rounded-2xl font-black text-lg sm:text-2xl uppercase tracking-widest overflow-hidden transition-all select-none cursor-pointer border-2 ${
-              tutorialStep === 1 || tutorialStep === 6
-                ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-slate-950 animate-pulse z-50 shadow-[0_0_30px_rgba(250,204,21,0.8)]'
+              tutorialStep === 1 || tutorialStep === 2
+                ? 'ring-4 ring-emerald-400 ring-offset-2 ring-offset-slate-950 shadow-[0_0_25px_rgba(52,211,153,0.7)]'
                 : ''
             } ${
               cooldownActive 
@@ -600,10 +625,15 @@ export default function App() {
           </button>
         </footer>
 
-        {/* Interactive Guided Spotlight Tutorial Overlay */}
-        <TutorialOverlay step={tutorialStep} onSkip={skipTutorial} />
+        {/* Interactive Guided Tutorial Overlay */}
+        <TutorialOverlay 
+          step={tutorialStep} 
+          onSkip={skipTutorial} 
+          onDismissOkPrompt={() => setTutorialStep(2)}
+          onFinishTutorial={handleFinishTutorial}
+        />
 
-        {/* Shop Modal Drawer with Musical Tabs & Konami Detection */}
+        {/* Shop Modal Drawer with Locked Tabs during Tutorial */}
         <AnimatePresence>
           {isShopOpen && (
             <motion.div 
@@ -936,6 +966,11 @@ export default function App() {
             onClose={() => setShowResetModal(false)} 
             onConfirm={() => {
               hardReset();
+              try {
+                localStorage.removeItem('pal_tutorial_completed');
+              } catch (e) {}
+              tutorialRollsCountRef.current = 0;
+              setTutorialStep(1);
               setShowResetModal(false);
               setIsOptionsOpen(false);
             }} 

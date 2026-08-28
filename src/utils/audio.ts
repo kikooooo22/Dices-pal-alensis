@@ -312,3 +312,80 @@ export const playMilestone2Ambiance = () => {
     });
   } catch (e) { }
 };
+
+let resetChargeOsc: OscillatorNode | null = null;
+let resetChargeGain: GainNode | null = null;
+
+export const startResetChargeSound = () => {
+  if (masterVolume <= 0) return;
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    stopResetChargeSound();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(40, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 1.8);
+
+    gain.gain.setValueAtTime(0.01 * masterVolume, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.4 * masterVolume, ctx.currentTime + 1.8);
+
+    // Deep sub-bass lowpass filter
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(140, ctx.currentTime);
+    filter.frequency.linearRampToValueAtTime(350, ctx.currentTime + 1.8);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    resetChargeOsc = osc;
+    resetChargeGain = gain;
+  } catch (e) { }
+};
+
+export const stopResetChargeSound = () => {
+  try {
+    if (resetChargeGain) {
+      const ctx = getAudioCtx();
+      if (ctx) {
+        resetChargeGain.gain.cancelScheduledValues(ctx.currentTime);
+        resetChargeGain.gain.setValueAtTime(0, ctx.currentTime);
+      }
+    }
+    if (resetChargeOsc) {
+      resetChargeOsc.stop();
+      resetChargeOsc.disconnect();
+      resetChargeOsc = null;
+    }
+  } catch (e) { }
+};
+
+export const playResetBoomSound = () => {
+  if (masterVolume <= 0) return;
+  try {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(130, now);
+    osc.frequency.exponentialRampToValueAtTime(25, now + 0.5);
+
+    gain.gain.setValueAtTime(0.6 * masterVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.5);
+  } catch (e) { }
+};
+

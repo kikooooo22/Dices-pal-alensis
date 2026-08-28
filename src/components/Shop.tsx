@@ -144,6 +144,7 @@ export const Shop: React.FC<ShopProps> = ({
 
   // Handle Tab Click & Musical Note Sequence Detection (Repeatable anytime)
   const handleTabClick = (cat: CategoryConfig) => {
+    if (tutorialStep > 0) return; // Tab switching blocked during tutorial
     playTabNote(cat.note);
     setActiveTab(cat.id);
 
@@ -217,20 +218,21 @@ export const Shop: React.FC<ShopProps> = ({
     const canAfford = state.points >= cost;
     const summary = getUpgradeStateSummary(def, currentLevel, isMax);
     const isTutorialTarget = tutorialStep === 4 && def.id === 'manual_cooldown';
+    const isLockedByTutorial = tutorialStep > 0 && def.id !== 'manual_cooldown';
 
     return (
       <button
         key={def.id}
         onClick={() => {
-          if (!isMax && canAfford) {
+          if (!isMax && canAfford && !isLockedByTutorial) {
             playBuySound();
             onBuy(def.id);
           }
         }}
-        disabled={isMax || !canAfford}
+        disabled={isMax || !canAfford || isLockedByTutorial}
         className={`w-full text-left p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex flex-col mb-3 select-none box-border ${
           isTutorialTarget ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-slate-900 animate-pulse' : ''
-        } ${isMax
+        } ${isLockedByTutorial ? 'opacity-40 cursor-not-allowed bg-slate-900 border-slate-800' : isMax
           ? 'bg-slate-800/40 border-slate-700/50 border-b-4 border-b-slate-700/60 opacity-70 cursor-default'
           : canAfford
             ? `${currentTabConfig.cardAffordableClass} active:translate-y-0.5 active:border-b-2 active:shadow-none cursor-pointer`
