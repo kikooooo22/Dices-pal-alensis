@@ -10,6 +10,7 @@ import { PolyhedronDie } from './components/Polyhedron3D';
 import { Shop } from './components/Shop';
 import { Milestones } from './components/Milestones';
 import { ResetModal } from './components/ResetModal';
+import { TutorialOverlay } from './components/TutorialOverlay';
 import { 
   getManualCooldown, 
   getDiceSides, 
@@ -17,6 +18,7 @@ import {
   getHoldToRollEnabled, 
   getAnimationSpeedMult,
   UPGRADES, 
+  UpgradeId,
   getCost, 
   getFlatBonus, 
   getMaterialMult,
@@ -26,7 +28,6 @@ import {
   ShoppingCart, 
   X, 
   Settings, 
-  Sparkles, 
   Flame, 
   Volume2, 
   VolumeX, 
@@ -39,7 +40,8 @@ import {
   Monitor,
   Eye,
   RotateCw,
-  Zap
+  Zap,
+  HelpCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -115,6 +117,31 @@ export default function App() {
   const [isPartyMode, setIsPartyMode] = useState(false);
   const [volume, setVolume] = useState(() => getMasterVolume());
   
+  // Interactive Onboarding Tutorial Step (1 to 6, 0 = Inactive)
+  const [tutorialStep, setTutorialStep] = useState<number>(() => {
+    try {
+      const isDone = localStorage.getItem('pal_tutorial_completed');
+      return isDone === 'true' ? 0 : 1;
+    } catch (e) {
+      return 1;
+    }
+  });
+
+  const startTutorial = () => {
+    playClickSound();
+    setIsOptionsOpen(false);
+    setIsShopOpen(false);
+    setTutorialStep(1);
+  };
+
+  const skipTutorial = () => {
+    playClickSound();
+    setTutorialStep(0);
+    try {
+      localStorage.setItem('pal_tutorial_completed', 'true');
+    } catch (e) {}
+  };
+  
   // Graphics & Performance settings with localStorage persistence
   const [graphics, setGraphics] = useState<GraphicsSettings>(() => {
     try {
@@ -183,6 +210,13 @@ export default function App() {
   const manualCooldown = getManualCooldown(state.upgrades.manual_cooldown);
   const animSpeedMult = getAnimationSpeedMult(state.upgrades.cushioned_surface);
 
+  // Advance tutorial step 2 -> 3 as soon as user earns 50 points
+  useEffect(() => {
+    if (tutorialStep === 2 && state.points >= 50) {
+      setTutorialStep(3);
+    }
+  }, [state.points, tutorialStep]);
+
   const triggerPartyMode = () => {
     setIsPartyMode(true);
     playPartyModeMusic();
@@ -225,6 +259,23 @@ export default function App() {
     playRollSound(materialTier);
     rollDice();
     
+    // Tutorial progression hooks
+    if (tutorialStep === 1) {
+      setTutorialStep(2);
+    } else if (tutorialStep === 6) {
+      setTutorialStep(0);
+      try {
+        localStorage.setItem('pal_tutorial_completed', 'true');
+      } catch (e) {}
+      confetti({
+        particleCount: 45,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#34d399', '#facc15', '#38bdf8', '#a855f7'],
+        zIndex: 9999
+      });
+    }
+
     setCooldownActive(true);
     setCooldownFraction(1);
     
@@ -310,6 +361,29 @@ export default function App() {
     }
   };
 
+  const handleOpenShop = () => {
+    playClickSound();
+    setIsShopOpen(true);
+    if (tutorialStep === 3) {
+      setTutorialStep(4);
+    }
+  };
+
+  const handleCloseShop = () => {
+    playClickSound();
+    setIsShopOpen(false);
+    if (tutorialStep === 5) {
+      setTutorialStep(6);
+    }
+  };
+
+  const handleBuyShopUpgrade = (id: UpgradeId) => {
+    buyUpgrade(id);
+    if (tutorialStep === 4) {
+      setTutorialStep(5);
+    }
+  };
+
   return (
     <div className={`w-full h-[100dvh] max-h-[100dvh] bg-slate-950 flex justify-center items-center overflow-hidden font-pixel select-none text-slate-100 p-0 sm:p-3 ${
       isPartyMode ? 'party-mode-active' : ''
@@ -369,9 +443,14 @@ export default function App() {
                 <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-slate-300" />
               </button>
 
+              {/* Shop Button with Spotlight when Tutorial Step 3 */}
               <button 
-                onClick={() => { playClickSound(); setIsShopOpen(true); }}
-                className="relative bg-blue-600 hover:bg-blue-500 text-white p-2 sm:p-3 rounded-xl sm:rounded-2xl border-2 border-blue-400 border-b-4 border-b-blue-800 shadow-[0_2px_0_#1e40af] active:translate-y-0.5 active:border-b-2 active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer font-bold"
+                onClick={handleOpenShop}
+                className={`relative p-2 sm:p-3 rounded-xl sm:rounded-2xl border-2 transition-all flex items-center gap-1.5 cursor-pointer font-bold ${
+                  tutorialStep === 3
+                    ? 'bg-blue-600 text-white border-cyan-300 border-b-4 border-b-blue-800 ring-4 ring-cyan-400 ring-offset-2 ring-offset-slate-950 animate-bounce z-50 shadow-[0_0_25px_rgba(6,182,212,0.8)]'
+                    : 'bg-blue-600 hover:bg-blue-500 text-white border-blue-400 border-b-4 border-b-blue-800 shadow-[0_2px_0_#1e40af] active:translate-y-0.5 active:border-b-2 active:shadow-none'
+                }`}
               >
                 <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline text-sm">Tienda</span>
@@ -443,7 +522,7 @@ export default function App() {
           />
         </main>
 
-        {/* Physical Roll Action Bar (Compact for Mobile) */}
+        {/* Physical Roll Action Bar (Compact for Mobile, Spotlighted on Step 1, 2 & 6) */}
         <footer className={`p-2.5 sm:p-4 bg-slate-950 border-t border-slate-800 z-10 pb-3 sm:pb-4 shadow-[0_-8px_25px_rgba(0,0,0,0.6)] flex items-center gap-2 sm:gap-3 shrink-0 ${
           isPartyMode ? 'party-dancer' : ''
         }`}>
@@ -479,13 +558,17 @@ export default function App() {
             </div>
           </div>
           
-          {/* Giant Launch Button with Pure Smooth Cooldown Animation & pointer capture */}
+          {/* Giant Launch Button with Pure Smooth Cooldown Animation & Spotlight */}
           <button
             onClick={() => handleRoll(false)}
             disabled={cooldownActive}
             onPointerDown={startHold}
             style={{ touchAction: 'none' }}
             className={`relative flex-1 h-[58px] sm:h-[72px] rounded-xl sm:rounded-2xl font-black text-lg sm:text-2xl uppercase tracking-widest overflow-hidden transition-all select-none cursor-pointer border-2 ${
+              tutorialStep === 1 || tutorialStep === 6
+                ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-slate-950 animate-pulse z-50 shadow-[0_0_30px_rgba(250,204,21,0.8)]'
+                : ''
+            } ${
               cooldownActive 
                 ? 'bg-slate-800 text-slate-300 border-slate-700 border-b-4 border-b-slate-900 shadow-inner translate-y-0.5' 
                 : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border-emerald-400 border-b-4 border-b-emerald-800 shadow-[0_4px_0_#065f46] active:translate-y-1 active:border-b-2 active:shadow-none'
@@ -517,6 +600,9 @@ export default function App() {
           </button>
         </footer>
 
+        {/* Interactive Guided Spotlight Tutorial Overlay */}
+        <TutorialOverlay step={tutorialStep} onSkip={skipTutorial} />
+
         {/* Shop Modal Drawer with Musical Tabs & Konami Detection */}
         <AnimatePresence>
           {isShopOpen && (
@@ -525,7 +611,7 @@ export default function App() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 26, stiffness: 220 }}
-              className="absolute inset-0 z-40 bg-slate-900 flex flex-col shadow-[-4px_0_30px_rgba(0,0,0,0.8)]"
+              className="absolute inset-0 z-50 bg-slate-900 flex flex-col shadow-[-4px_0_30px_rgba(0,0,0,0.8)]"
             >
               <div className="flex justify-between items-center p-3.5 sm:p-4 border-b border-slate-800 bg-slate-950 shrink-0">
                 <div>
@@ -537,8 +623,10 @@ export default function App() {
                   </div>
                 </div>
                 <button 
-                  onClick={() => { playClickSound(); setIsShopOpen(false); }}
-                  className="p-1.5 sm:p-2 bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 border-b-4 border-b-slate-950 rounded-xl shadow-[0_2px_0_#0f172a] active:translate-y-0.5 active:shadow-none transition-all text-slate-300 cursor-pointer"
+                  onClick={handleCloseShop}
+                  className={`p-1.5 sm:p-2 bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 border-b-4 border-b-slate-950 rounded-xl shadow-[0_2px_0_#0f172a] active:translate-y-0.5 active:shadow-none transition-all text-slate-300 cursor-pointer ${
+                    tutorialStep === 5 ? 'ring-4 ring-purple-400 ring-offset-2 ring-offset-slate-950 animate-bounce' : ''
+                  }`}
                 >
                   <X className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
@@ -547,12 +635,13 @@ export default function App() {
               <div className="flex-1 overflow-hidden">
                 <Shop 
                   state={state} 
-                  onBuy={buyUpgrade}
+                  onBuy={handleBuyShopUpgrade}
                   onBuyM1={handleBuyM1}
                   onBuyM2={handleBuyM2}
                   onToggleAutoRoll={toggleAutoRoll}
                   onUnlockCheats={unlockCheats}
                   isAutoRollPaused={isAutoRollPaused}
+                  tutorialStep={tutorialStep}
                 />
               </div>
             </motion.div>
@@ -571,7 +660,7 @@ export default function App() {
           m1AlreadyUnlocked={state.milestone1Unlocked}
         />
 
-        {/* Options & Stats Modal (Scrollable, never overflows) */}
+        {/* Options & Stats Modal with Tutorial (?) Replay Button */}
         <AnimatePresence>
           {isOptionsOpen && (
             <motion.div 
@@ -598,18 +687,28 @@ export default function App() {
                 onClick={(e) => e.stopPropagation()}
                 className="bg-slate-900 border-2 border-slate-700 w-full max-w-sm rounded-2xl sm:rounded-3xl shadow-2xl relative cursor-default max-h-[78vh] sm:max-h-[82vh] flex flex-col overflow-hidden"
               >
-                {/* Fixed Header */}
+                {/* Fixed Header with Tutorial Replay Button */}
                 <div className="flex justify-between items-center p-4 sm:p-5 pb-3 border-b border-slate-800 shrink-0 bg-slate-950/70">
                   <h2 className="text-base sm:text-lg font-black text-slate-100 flex items-center gap-2">
                     <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                     Opciones & Rendimiento
                   </h2>
-                  <button 
-                    onClick={() => { playClickSound(); setIsOptionsOpen(false); }}
-                    className="p-1.5 bg-slate-800 hover:bg-slate-750 border-2 border-slate-700 border-b-4 border-b-slate-950 rounded-xl shadow-[0_2px_0_#0f172a] text-slate-300 cursor-pointer active:translate-y-0.5 active:shadow-none"
-                  >
-                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={startTutorial}
+                      className="px-2.5 py-1 bg-yellow-950/80 hover:bg-yellow-900 border border-yellow-500/60 rounded-xl text-yellow-300 text-xs font-bold flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer transition-all"
+                      title="Repetir Tutorial Guiado"
+                    >
+                      <HelpCircle className="w-3.5 h-3.5 text-yellow-400" />
+                      <span>Tutorial</span>
+                    </button>
+                    <button 
+                      onClick={() => { playClickSound(); setIsOptionsOpen(false); }}
+                      className="p-1.5 bg-slate-800 hover:bg-slate-750 border-2 border-slate-700 border-b-4 border-b-slate-950 rounded-xl shadow-[0_2px_0_#0f172a] text-slate-300 cursor-pointer active:translate-y-0.5 active:shadow-none"
+                    >
+                      <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Scrollable Content inside Popup */}

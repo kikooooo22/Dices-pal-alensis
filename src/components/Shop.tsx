@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   UPGRADES,
@@ -41,6 +41,7 @@ interface ShopProps {
   onToggleAutoRoll: () => void;
   onUnlockCheats: () => void;
   isAutoRollPaused: boolean;
+  tutorialStep?: number;
 }
 
 interface CategoryConfig {
@@ -120,11 +121,19 @@ export const Shop: React.FC<ShopProps> = ({
   onBuyM2,
   onToggleAutoRoll,
   onUnlockCheats,
-  isAutoRollPaused
+  isAutoRollPaused,
+  tutorialStep = 0
 }) => {
   const [activeTab, setActiveTab] = useState<UpgradeCategory | 'milestones'>('dice');
   const [showUnlockToast, setShowUnlockToast] = useState(false);
   const seqIndexRef = useRef(0);
+
+  // If in tutorial step 4, focus on automation tab for Dedos Rápidos
+  useEffect(() => {
+    if (tutorialStep === 4) {
+      setActiveTab('automation');
+    }
+  }, [tutorialStep]);
 
   const m1Cost = 150000;
   const m2Cost = 1000000000; // 1B for Secret 2
@@ -158,45 +167,29 @@ export const Shop: React.FC<ShopProps> = ({
         seqIndexRef.current = 0;
       }
     } else {
-      if (cat.id === ODE_TO_JOY_SEQUENCE[0]) {
-        seqIndexRef.current = 1;
-      } else {
-        seqIndexRef.current = 0;
-      }
+      seqIndexRef.current = cat.id === ODE_TO_JOY_SEQUENCE[0] ? 1 : 0;
     }
-  };
-
-  // Notification count per category
-  const getTabAffordableCount = (catId: UpgradeCategory | 'milestones'): number => {
-    if (catId === 'milestones') {
-      let count = 0;
-      if (!isM1Locked && !state.milestone1Unlocked && state.points >= m1Cost) count++;
-      if (!isM2Locked && !state.milestone2Unlocked && state.points >= m2Cost) count++;
-      return count;
-    }
-    return Object.values(UPGRADES).filter(u => {
-      if (u.category !== catId) return false;
-      const currentLevel = state.upgrades[u.id] || 0;
-      return currentLevel < u.maxLevel && state.points >= getCost(u.id, currentLevel);
-    }).length;
   };
 
   const currentTabConfig = CATEGORIES.find(c => c.id === activeTab) || CATEGORIES[0];
 
-  const getUpgradeStateSummary = (def: UpgradeDef, level: number, isMax: boolean): string => {
+  // Real-time state indicator for each upgrade card
+  const getUpgradeStateSummary = (def: UpgradeDef, level: number, isMax: boolean) => {
     switch (def.id) {
       case 'extra_dice':
         return `Dados activos: ${level + 1} dados${!isMax ? ` → ${level + 2} dados` : ''}`;
       case 'dice_sides':
-        return `Poliedro: D${getDiceSides(level)}${!isMax ? ` → D${getDiceSides(level + 1)}` : ''}`;
+        return `Caras del dado: D${getDiceSides(level)}${!isMax ? ` → D${getDiceSides(level + 1)}` : ''}`;
       case 'material_tier':
         return `Material: ${getMaterialTierName(level)} (x${getMaterialMult(level)})${!isMax ? ` → ${getMaterialTierName(level + 1)} (x${getMaterialMult(level + 1)})` : ''}`;
       case 'manual_cooldown':
-        return `Tiempo de recarga: ${getManualCooldown(level).toFixed(2)}s${!isMax ? ` → ${getManualCooldown(level + 1).toFixed(2)}s` : ''}`;
+        return `Recarga: ${getManualCooldown(level).toFixed(3)}s (${(1 / getManualCooldown(level)).toFixed(1)}/s)${!isMax ? ` → ${getManualCooldown(level + 1).toFixed(3)}s (${(1 / getManualCooldown(level + 1)).toFixed(1)}/s)` : ''}`;
       case 'auto_roller':
-        return `Tiradas automáticas: ${level === 0 ? '0/s (Desactivado)' : `${getAutoRollsPerSec(level).toFixed(1)} tiros/s`}${!isMax ? ` → ${getAutoRollsPerSec(level + 1).toFixed(1)} tiros/s` : ''}`;
+        return level > 0
+          ? `Tiros automáticos: ${getAutoRollsPerSec(level).toFixed(1)} tiros/s${!isMax ? ` → ${getAutoRollsPerSec(level + 1).toFixed(1)} tiros/s` : ''}`
+          : 'Inactivo → Desbloquear 0.3 tiros/s';
       case 'cushioned_surface':
-        return `Velocidad física de animación: ${getAnimationSpeedMult(level).toFixed(1)}x${!isMax ? ` → ${getAnimationSpeedMult(level + 1).toFixed(1)}x` : ''}`;
+        return `Velocidad animación: x${getAnimationSpeedMult(level).toFixed(1)}${!isMax ? ` → x${getAnimationSpeedMult(level + 1).toFixed(1)}` : ''}`;
       case 'hold_to_roll':
         return level > 0 ? 'Tiro continuo activado (mantén presionado)' : 'Habilita disparar manteniendo presionado';
       case 'flat_bonus':
@@ -223,6 +216,7 @@ export const Shop: React.FC<ShopProps> = ({
     const cost = getCost(def.id, currentLevel);
     const canAfford = state.points >= cost;
     const summary = getUpgradeStateSummary(def, currentLevel, isMax);
+    const isTutorialTarget = tutorialStep === 4 && def.id === 'manual_cooldown';
 
     return (
       <button
@@ -234,7 +228,9 @@ export const Shop: React.FC<ShopProps> = ({
           }
         }}
         disabled={isMax || !canAfford}
-        className={`w-full text-left p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex flex-col mb-3 select-none box-border ${isMax
+        className={`w-full text-left p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex flex-col mb-3 select-none box-border ${
+          isTutorialTarget ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-slate-900 animate-pulse' : ''
+        } ${isMax
           ? 'bg-slate-800/40 border-slate-700/50 border-b-4 border-b-slate-700/60 opacity-70 cursor-default'
           : canAfford
             ? `${currentTabConfig.cardAffordableClass} active:translate-y-0.5 active:border-b-2 active:shadow-none cursor-pointer`
@@ -300,225 +296,159 @@ export const Shop: React.FC<ShopProps> = ({
               <Wand2 className="w-5 h-5 animate-spin" />
             </div>
             <div>
-              <div className="font-bold text-yellow-300 text-sm">Trucos activados. Visita el menú de opciones</div>
-              <div className="text-slate-100 font-mono text-[11px] mt-0.5">Nuevos trucos y Modo Fiesta disponibles 🧪🎉</div>
+              <div className="font-bold text-yellow-300 uppercase tracking-wider text-sm sm:text-base">
+                ¡Código Musical Descubierto!
+              </div>
+              <div className="text-white text-xs">
+                Trucos activados. Visita el menú de opciones.
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Category Tabs Header with Musical Note Sounds and Sequence Detector */}
-      <div className="p-2.5 sm:p-3 bg-slate-950 border-b border-slate-800 shrink-0">
-        <div className="grid grid-cols-5 gap-1 sm:gap-2">
-          {CATEGORIES.map(cat => {
-            const Icon = cat.icon;
-            const isActive = activeTab === cat.id;
-            const affordableCount = getTabAffordableCount(cat.id);
-            const isSuperstar = cat.id === 'milestones';
+      {/* Musical Category Tabs Strip */}
+      <div className="flex border-b border-slate-800 bg-slate-950 px-2 pt-2 gap-1.5 shrink-0 overflow-x-auto select-none no-scrollbar">
+        {CATEGORIES.map(cat => {
+          const Icon = cat.icon;
+          const isActive = activeTab === cat.id;
 
-            return (
-              <button
-                key={cat.id}
-                onClick={() => handleTabClick(cat)}
-                className={`relative py-2 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border-2 font-bold text-xs sm:text-sm cursor-pointer select-none ${isActive
-                  ? `${cat.activeClass} translate-y-0.5`
-                  : `${cat.inactiveClass} active:translate-y-1 active:shadow-none`
-                  }`}
-              >
-                <div className={`flex items-center justify-center ${isSuperstar ? 'superstar-content-anim' : ''}`}>
-                  <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isSuperstar && isActive ? 'text-slate-950 drop-shadow-none' : ''}`} />
-                </div>
-                <span className={`truncate text-[11px] sm:text-xs ${isSuperstar ? 'superstar-content-anim tracking-wider' : ''}`}>{cat.name}</span>
+          const count = cat.id === 'milestones'
+            ? (!isM1Locked && state.points >= m1Cost ? 1 : 0) + (!isM2Locked && state.points >= m2Cost ? 1 : 0)
+            : Object.values(UPGRADES)
+              .filter(u => u.category === cat.id)
+              .filter(u => {
+                const lvl = state.upgrades[u.id] || 0;
+                return lvl < u.maxLevel && state.points >= getCost(u.id, lvl);
+              }).length;
 
-                {/* Prominent Large Notification Badge */}
-                {affordableCount > 0 && (
-                  <span className="absolute -top-2 -right-1 bg-rose-500 text-white text-[10px] sm:text-xs font-black w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center border-2 border-slate-950 shadow-xl animate-bounce z-10">
-                    {affordableCount}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Auto-roll toggle sub-bar if auto_roller unlocked */}
-        {state.upgrades.auto_roller > 0 && activeTab === 'automation' && (
-          <div className="mt-2.5 flex justify-between items-center bg-slate-900 p-2 sm:p-2.5 rounded-xl border border-slate-800">
-            <span className="text-xs font-bold text-slate-300">
-              Estado de Lanzador Automático
-            </span>
+          return (
             <button
-              onClick={() => {
-                playBuySound();
-                onToggleAutoRoll();
-              }}
-              className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border-2 border-b-4 active:border-b-2 active:translate-y-0.5 transition-all cursor-pointer ${isAutoRollPaused
-                ? 'bg-amber-600 hover:bg-amber-500 border-amber-400 border-b-amber-800 shadow-[0_2px_0_#78350f] text-white'
-                : 'bg-emerald-600 hover:bg-emerald-500 border-emerald-400 border-b-emerald-800 shadow-[0_2px_0_#065f46] text-white'
+              key={cat.id}
+              onClick={() => handleTabClick(cat)}
+              className={`flex-1 min-w-[58px] py-2 px-1 rounded-t-xl text-xs sm:text-sm font-bold flex flex-col items-center gap-1 transition-all relative border-2 border-b-0 cursor-pointer ${isActive ? cat.activeClass : cat.inactiveClass
                 }`}
             >
-              {isAutoRollPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-              {isAutoRollPaused ? 'Pausado' : 'Activo'}
+              <div className="flex items-center gap-1">
+                <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${cat.id === 'milestones' ? 'text-pink-300 animate-bounce' : ''}`} />
+                <span className="truncate">{cat.name}</span>
+              </div>
+
+              {count > 0 && (
+                <span className="absolute -top-1.5 -right-1 bg-rose-500 text-white text-[9px] sm:text-[10px] font-black w-4 h-4 sm:w-4.5 sm:h-4.5 flex items-center justify-center rounded-full border border-slate-950 shadow-md">
+                  {count}
+                </span>
+              )}
             </button>
-          </div>
-        )}
+          );
+        })}
       </div>
 
-      {/* Upgrades Scrollable Area */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4 pb-32">
+      {/* Upgrades List Container with Smooth Momentum Scroll */}
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 overscroll-contain">
         {activeTab !== 'milestones' ? (
-          <div className="space-y-1">
+          <div>
             {filteredUpgrades.map(renderUpgradeCard)}
           </div>
         ) : (
-          /* Secretos Tab */
-          <div className="space-y-3 sm:space-y-4">
-            {/* Secreto 1 (Real.jpg) */}
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`p-4 sm:p-5 rounded-2xl border-2 transition-all box-border ${isM1Locked
-                ? 'bg-slate-850/90 border-slate-700/80 border-b-4 border-b-slate-600 shadow-[0_3px_0_#334155] opacity-80'
-                : state.milestone1Unlocked
-                  ? 'bg-blue-950/40 border-cyan-500/50 border-b-4 border-b-blue-900 shadow-[0_3px_0_#1e3a8a]'
-                  : state.points >= m1Cost
-                    ? 'bg-blue-900/60 hover:bg-blue-900/70 border-cyan-400 border-b-4 border-b-blue-700 shadow-[0_4px_0_#1d4ed8]'
-                    : 'bg-blue-950/20 border-cyan-500/30 border-b-4 border-b-blue-950 opacity-75 shadow-[0_3px_0_#172554]'
-                }`}
-            >
+          <div className="space-y-3.5">
+            {/* Secret Card 1 */}
+            <div className={`p-4 sm:p-5 rounded-2xl border-2 transition-all flex flex-col ${isM1Locked
+              ? 'bg-slate-950/80 border-slate-800 text-slate-500 opacity-60'
+              : state.points >= m1Cost
+                ? 'bg-gradient-to-br from-purple-950/80 to-pink-950/80 border-pink-400 border-b-4 border-b-pink-600 shadow-[0_4px_0_#831843] text-white'
+                : 'bg-slate-900 border-purple-900/60 border-b-4 border-b-slate-950 text-slate-400'
+              }`}>
               <div className="flex justify-between items-start gap-3">
                 <div className="flex-1">
-                  <h3 className={`text-base sm:text-lg font-black flex items-center gap-2 ${isM1Locked ? 'text-slate-400' : 'text-cyan-300'
-                    }`}>
-                    {isM1Locked ? (
-                      <Lock className="w-4 h-4 text-slate-500" />
-                    ) : (
-                      <Zap className="w-4 h-4 text-yellow-300" />
-                    )}
-                    Imagen?
-                    {state.milestone1Unlocked && (
-                      <span className="text-xs font-bold text-cyan-200 bg-blue-900/70 border border-cyan-500/60 px-2 py-0.5 rounded-full">
-                        MAX
-                      </span>
-                    )}
-                  </h3>
-                  <p className={`text-xs sm:text-sm mt-1 leading-snug ${isM1Locked ? 'text-slate-400' : 'text-slate-200'
-                    }`}>
-                    {isM1Locked ? 'Una sorpresa misteriosa.' : 'Una sorpresa misteriosa. Multiplica por 2 todas las tiradas de forma permanente.'}
+                  <div className="flex items-center gap-2">
+                    <Gift className={`w-5 h-5 ${isM1Locked ? 'text-slate-600' : 'text-pink-400'}`} />
+                    <h3 className="font-bold text-sm sm:text-base text-pink-200">
+                      {isM1Locked ? '??? (Bloqueado)' : 'Mensaje Secreto: 28 de Agosto'}
+                    </h3>
+                  </div>
+                  <p className="text-xs sm:text-sm mt-1 text-slate-300">
+                    {isM1Locked
+                      ? 'Desbloquea al menos 15 mejoras en la tienda para revelar este secreto.'
+                      : 'Una dedicatoria especial de cumpleaños oculta en los dados.'}
                   </p>
                 </div>
-
-                <div className="text-right shrink-0">
-                  {isM1Locked ? (
-                    <span className="font-pixel text-sm sm:text-base text-slate-400 font-bold">
-                      Faltan {15 - totalUpgradesBought} mejoras
-                    </span>
-                  ) : !state.milestone1Unlocked ? (
-                    <span className={`font-pixel text-base sm:text-xl font-bold ${state.points >= m1Cost ? 'text-cyan-300' : 'text-slate-400'
-                      }`}>
-                      {formatNumber(m1Cost)} pts
-                    </span>
-                  ) : null}
+                <div className="text-right">
+                  <span className={`font-pixel text-base sm:text-lg font-bold ${state.points >= m1Cost && !isM1Locked ? 'text-yellow-300' : 'text-slate-500'}`}>
+                    {formatNumber(m1Cost)} pts
+                  </span>
                 </div>
               </div>
 
-              {/* Action Buttons if not locked */}
               {!isM1Locked && (
-                <div className="mt-3 sm:mt-4 flex gap-2">
-                  {!state.milestone1Unlocked ? (
-                    <button
-                      onClick={onBuyM1}
-                      disabled={state.points < m1Cost}
-                      className={`w-full py-2.5 sm:py-3 rounded-xl font-bold font-pixel text-base sm:text-lg flex items-center justify-center gap-2 border-2 border-b-4 transition-all ${state.points >= m1Cost
-                        ? 'bg-blue-600 hover:bg-blue-500 border-cyan-300 border-b-blue-900 shadow-[0_3px_0_#1e3a8a] text-white cursor-pointer active:translate-y-0.5 active:shadow-none'
-                        : 'bg-slate-800 text-slate-500 border-slate-700 border-b-slate-900 cursor-not-allowed'
-                        }`}
-                    >
-                      <Sparkles className="w-4 h-4" /> Desbloquear
-                    </button>
-                  ) : (
-                    <button
-                      onClick={onBuyM1}
-                      className="w-full py-2 sm:py-2.5 rounded-xl font-bold font-pixel text-sm sm:text-base bg-blue-900/40 hover:bg-blue-900/60 text-cyan-300 border-2 border-cyan-600/50 border-b-4 border-b-blue-950 shadow-[0_2px_0_#172554] flex items-center justify-center gap-2 cursor-pointer transition-all active:translate-y-0.5 active:shadow-none"
-                    >
-                      <Eye className="w-4 h-4" /> Ver de Nuevo
-                    </button>
-                  )}
+                <div className="mt-3 pt-3 border-t border-pink-900/40 flex justify-end">
+                  <button
+                    onClick={() => {
+                      playBuySound();
+                      onBuyM1();
+                    }}
+                    disabled={state.points < m1Cost && !state.milestone1Unlocked}
+                    className={`px-4 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all border-2 ${state.milestone1Unlocked
+                      ? 'bg-pink-600 text-white border-pink-400 border-b-4 border-b-pink-800 cursor-pointer shadow-[0_2px_0_#831843]'
+                      : state.points >= m1Cost
+                        ? 'bg-pink-600 hover:bg-pink-500 text-white border-pink-400 border-b-4 border-b-pink-800 cursor-pointer shadow-[0_2px_0_#831843] active:translate-y-0.5 active:border-b-2 active:shadow-none'
+                        : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'
+                      }`}
+                  >
+                    {state.milestone1Unlocked ? 'Ver de nuevo' : 'Comprar Secreto'}
+                  </button>
                 </div>
               )}
-            </motion.div>
+            </div>
 
-            {/* Secreto 2 (Fake.jpg - 1B Cost) */}
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className={`p-4 sm:p-5 rounded-2xl border-2 transition-all box-border ${isM2Locked
-                ? 'bg-slate-850/90 border-slate-700/80 border-b-4 border-b-slate-600 shadow-[0_3px_0_#334155] opacity-80'
-                : state.milestone2Unlocked
-                  ? 'bg-purple-950/30 border-purple-500/40 border-b-4 border-b-purple-800 shadow-[0_3px_0_#3b0764]'
-                  : state.points >= m2Cost
-                    ? 'bg-purple-900/50 hover:bg-purple-900/60 border-purple-400 border-b-4 border-b-purple-600 shadow-[0_4px_0_#6b21a8]'
-                    : 'bg-purple-950/20 border-purple-500/30 border-b-4 border-b-purple-900/40 opacity-75 shadow-[0_3px_0_#3b0764]'
-                }`}
-            >
+            {/* Secret Card 2 */}
+            <div className={`p-4 sm:p-5 rounded-2xl border-2 transition-all flex flex-col ${isM2Locked
+              ? 'bg-slate-950/80 border-slate-800 text-slate-500 opacity-60'
+              : state.points >= m2Cost
+                ? 'bg-gradient-to-br from-indigo-950/90 to-purple-950/90 border-cyan-400 border-b-4 border-b-cyan-600 shadow-[0_4px_0_#0e7490] text-white'
+                : 'bg-slate-900 border-cyan-900/60 border-b-4 border-b-slate-950 text-slate-400'
+              }`}>
               <div className="flex justify-between items-start gap-3">
                 <div className="flex-1">
-                  <h3 className={`text-base sm:text-lg font-black flex items-center gap-2 ${isM2Locked ? 'text-slate-400' : 'text-purple-400'
-                    }`}>
-                    <Lock className={`w-4 h-4 ${isM2Locked ? 'text-slate-500' : 'text-purple-300'}`} />
-                    ???
-                    {state.milestone2Unlocked && (
-                      <span className="text-xs font-bold text-purple-300 bg-purple-900/60 border border-purple-600/60 px-2 py-0.5 rounded-full">
-                        MAX
-                      </span>
-                    )}
-                  </h3>
-                  <p className={`text-xs sm:text-sm mt-1 leading-snug ${isM2Locked ? 'text-slate-400' : 'text-slate-200'
-                    }`}>
-                    {isM2Locked ? 'Aún no estás listo.' : 'Termina el juego y desbloquea el registro de carrera.'}
+                  <div className="flex items-center gap-2">
+                    <Sparkles className={`w-5 h-5 ${isM2Locked ? 'text-slate-600' : 'text-cyan-400'}`} />
+                    <h3 className="font-bold text-sm sm:text-base text-cyan-200">
+                      {isM2Locked ? '??? (Bloqueado)' : 'La Iluminación Cósmica (1B)'}
+                    </h3>
+                  </div>
+                  <p className="text-xs sm:text-sm mt-1 text-slate-300">
+                    {isM2Locked
+                      ? 'Desbloquea al menos 50 mejoras en total para revelar este misterio supremo.'
+                      : 'Descubre el mensaje final del universo y el secreto definitivo.'}
                   </p>
                 </div>
-
-                <div className="text-right shrink-0">
-                  {isM2Locked ? (
-                    <span className="font-pixel text-sm sm:text-base text-slate-400 font-bold">
-                      Faltan {50 - totalUpgradesBought} mejoras
-                    </span>
-                  ) : !state.milestone2Unlocked ? (
-                    <span className={`font-pixel text-base sm:text-xl font-bold ${state.points >= m2Cost ? 'text-purple-300' : 'text-slate-400'
-                      }`}>
-                      {formatNumber(m2Cost)} pts
-                    </span>
-                  ) : null}
+                <div className="text-right">
+                  <span className={`font-pixel text-base sm:text-lg font-bold ${state.points >= m2Cost && !isM2Locked ? 'text-yellow-300' : 'text-slate-500'}`}>
+                    {formatNumber(m2Cost)} pts
+                  </span>
                 </div>
               </div>
 
-              {/* Action Buttons if not locked */}
               {!isM2Locked && (
-                <div className="mt-3 sm:mt-4 flex gap-2">
-                  {!state.milestone2Unlocked ? (
-                    <button
-                      onClick={onBuyM2}
-                      disabled={state.points < m2Cost}
-                      className={`w-full py-2.5 sm:py-3 rounded-xl font-bold font-pixel text-base sm:text-lg flex items-center justify-center gap-2 border-2 border-b-4 transition-all ${state.points >= m2Cost
-                        ? 'bg-purple-600 hover:bg-purple-500 border-purple-300 border-b-purple-800 shadow-[0_3px_0_#581c87] text-white cursor-pointer active:translate-y-0.5 active:shadow-none'
-                        : 'bg-slate-800 text-slate-500 border-slate-700 border-b-slate-900 cursor-not-allowed'
-                        }`}
-                    >
-                      <Lock className="w-4 h-4" /> Desbloquear
-                    </button>
-                  ) : (
-                    <button
-                      onClick={onBuyM2}
-                      className="w-full py-2 sm:py-2.5 rounded-xl font-bold font-pixel text-sm sm:text-base bg-purple-900/40 hover:bg-purple-900/60 text-purple-300 border-2 border-purple-600/50 border-b-4 border-b-purple-900 shadow-[0_2px_0_#3b0764] flex items-center justify-center gap-2 cursor-pointer transition-all active:translate-y-0.5 active:shadow-none"
-                    >
-                      <Eye className="w-4 h-4" /> Ver de Nuevo
-                    </button>
-                  )}
+                <div className="mt-3 pt-3 border-t border-cyan-900/40 flex justify-end">
+                  <button
+                    onClick={() => {
+                      playBuySound();
+                      onBuyM2();
+                    }}
+                    disabled={state.points < m2Cost && !state.milestone2Unlocked}
+                    className={`px-4 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all border-2 ${state.milestone2Unlocked
+                      ? 'bg-cyan-600 text-white border-cyan-400 border-b-4 border-b-cyan-800 cursor-pointer shadow-[0_2px_0_#0891b2]'
+                      : state.points >= m2Cost
+                        ? 'bg-cyan-600 hover:bg-cyan-500 text-white border-cyan-400 border-b-4 border-b-cyan-800 cursor-pointer shadow-[0_2px_0_#0891b2] active:translate-y-0.5 active:border-b-2 active:shadow-none'
+                        : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'
+                      }`}
+                  >
+                    {state.milestone2Unlocked ? 'Ver de nuevo' : 'Comprar Secreto'}
+                  </button>
                 </div>
               )}
-            </motion.div>
+            </div>
           </div>
         )}
       </div>
