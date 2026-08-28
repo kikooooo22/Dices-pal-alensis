@@ -10,7 +10,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
-[**🎮 Jugar en Vivo**](https://dices-opal.vercel.app/) · [Reportar Bug](https://github.com/kikooooo22/Dices/issues) · [Solicitar Característica](https://github.com/kikooooo22/Dices/issues)
+[**🎮 Jugar en Vivo**](https://dices-opal.vercel.app/) · [Reportar Bug](https://github.com/kikooooo22/Dices-pal-alensis/issues) · [Solicitar Característica](https://github.com/kikooooo22/Dices-pal-alensis/issues)
 
 </div>
 
@@ -67,8 +67,8 @@
 
 1. **Clonar el repositorio:**
    ```bash
-   git clone https://github.com/kikooooo22/Dices.git
-   cd Dices
+   git clone https://github.com/kikooooo22/Dices-pal-alensis.git
+   cd Dices-pal-alensis
    ```
 
 2. **Instalar dependencias:**
